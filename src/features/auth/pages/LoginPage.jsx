@@ -15,7 +15,7 @@ import {
   MAX_LOGIN_ATTEMPTS,
   LOCKOUT_DURATION
 } from '../services/securityUtils';
-import '../auth.css';
+import '../login.css';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -121,9 +121,7 @@ const LoginPage = () => {
       {isLoggingIn && <Loader fullscreen size="md" />}
       <form onSubmit={handleLogin} className="auth-form">
         <h1>Library Login</h1>
-        <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
-          Secure login to access library resources
-        </p>
+       
         
         {error && (
           <div className="error-message" style={{ 
@@ -131,6 +129,11 @@ const LoginPage = () => {
             marginBottom: '16px'
           }}>
             {error}
+            {isAccountLocked(email) && lockoutTimeRemaining > 0 && (
+              <div style={{ fontSize: '12px', color: '#d32f2f', marginTop: '8px' }}>
+                You are locked out. Time remaining: {formatLockoutTime(lockoutTimeRemaining)}
+              </div>
+            )}
           </div>
         )}
         
@@ -171,6 +174,7 @@ const LoginPage = () => {
               className="password-toggle"
               title={password ? (showPassword ? 'Hide password' : 'Show password') : 'Enter password'}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
+              style={{ background: 'none', border: 'none', boxShadow: 'none' }}
             >
               {showPassword ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -209,6 +213,14 @@ const LoginPage = () => {
         >
           {isLoggingIn ? 'Signing In...' : 'Sign In'}
         </Button>
+        <div style={{ marginTop: '16px', textAlign: 'center' }}>
+          <a
+            href="/forgot-password"
+            style={{ color: '#1976d2', textDecoration: 'underline', fontSize: '14px' }}
+          >
+            Forgot Password?
+          </a>
+        </div>
       </form>
     </div>
   );

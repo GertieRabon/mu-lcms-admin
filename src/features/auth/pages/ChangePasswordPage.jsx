@@ -5,7 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { Button, Loader } from '../../../components/ui';
 import { validatePassword, getPasswordStrength } from '../services/authService';
 import { secureSession } from '../services/securityUtils';
-import '../auth.css';
+import '../change-password.css';
 
 const ChangePasswordPage = () => {
   const [password, setPassword] = useState('');
@@ -14,6 +14,7 @@ const ChangePasswordPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showValidation, setShowValidation] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
@@ -117,16 +118,9 @@ const ChangePasswordPage = () => {
         <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
           Create a strong, unique password to secure your account
         </p>
-        
-        {error && (
-          <div className="error-message" style={{ marginBottom: '16px' }}>
-            ⚠️ {error}
-          </div>
-        )}
-
         <div className="form-group">
           <label htmlFor="password">New Password</label>
-          <div style={{ position: 'relative' }}>
+          <div className="password-field-wrapper">
             <input 
               id="password"
               type={showPassword ? 'text' : 'password'} 
@@ -141,39 +135,14 @@ const ChangePasswordPage = () => {
                 paddingRight: '44px',
                 boxSizing: 'border-box'
               }}
+              onFocus={() => setShowValidation(true)}
+              onBlur={() => setShowValidation(false)}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               disabled={!password || loading}
-              style={{
-                position: 'absolute',
-                right: '0',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'transparent',
-                border: 'none',
-                cursor: password ? 'pointer' : 'not-allowed',
-                fontSize: '16px',
-                color: password ? (showPassword ? 'var(--mapuan-red)' : '#999') : '#ddd',
-                padding: '8px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'color 0.2s ease',
-                userSelect: 'none',
-                pointerEvents: password ? 'auto' : 'none'
-              }}
-              onMouseEnter={(e) => {
-                if (password && !loading) {
-                  e.currentTarget.style.color = 'var(--mapuan-red)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (password && !loading) {
-                  e.currentTarget.style.color = showPassword ? 'var(--mapuan-red)' : '#999';
-                }
-              }}
+              className="password-toggle"
               title={password ? (showPassword ? 'Hide password' : 'Show password') : 'Enter password'}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
@@ -191,7 +160,7 @@ const ChangePasswordPage = () => {
             </button>
           </div>
 
-          {password && (
+          {showValidation && (
             <div style={{ marginTop: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                 <div style={{
@@ -239,7 +208,7 @@ const ChangePasswordPage = () => {
 
         <div className="form-group">
           <label htmlFor="confirmPassword">Confirm Password</label>
-          <div style={{ position: 'relative' }}>
+          <div className="password-field-wrapper">
             <input 
               id="confirmPassword"
               type={showConfirmPassword ? 'text' : 'password'} 
@@ -260,34 +229,7 @@ const ChangePasswordPage = () => {
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               disabled={!confirmPassword || loading}
-              style={{
-                position: 'absolute',
-                right: '0',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'transparent',
-                border: 'none',
-                cursor: confirmPassword ? 'pointer' : 'not-allowed',
-                fontSize: '16px',
-                color: confirmPassword ? (showConfirmPassword ? 'var(--mapuan-red)' : '#999') : '#ddd',
-                padding: '8px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'color 0.2s ease',
-                userSelect: 'none',
-                pointerEvents: confirmPassword ? 'auto' : 'none'
-              }}
-              onMouseEnter={(e) => {
-                if (confirmPassword && !loading) {
-                  e.currentTarget.style.color = 'var(--mapuan-red)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (confirmPassword && !loading) {
-                  e.currentTarget.style.color = showConfirmPassword ? 'var(--mapuan-red)' : '#999';
-                }
-              }}
+              className="password-toggle"
               title={confirmPassword ? (showConfirmPassword ? 'Hide password' : 'Show password') : 'Enter password'}
               aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
             >

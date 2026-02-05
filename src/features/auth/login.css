@@ -1,0 +1,53 @@
+/* ============================================
+   LOGIN PAGE STYLES
+   ============================================ */
+
+@import '../auth/auth-base.css';
+
+/* Add any LoginPage-specific overrides here */
+
+.auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--light) 0%, #ffffff 100%);
+  padding: 20px;
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 400px;
+  background: var(--white);
+  padding: 40px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: slide-up 0.4s ease;
+}
+
+.auth-form h2 {
+  text-align: center;
+  color: var(--primary);
+  margin-bottom: 28px;
+  font-size: var(--font-size-2xl);
+}
+
+.auth-form p {
+  text-align: center;
+  color: var(--gray);
+  margin-bottom: 24px;
+  font-size: var(--font-size-sm);
+}
+
+.auth-form input:not(.password-input) {
+  margin-bottom: 16px;
+}
+
+.auth-form button {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.auth-form .form-group {
+  margin-bottom: 16px;
+}
