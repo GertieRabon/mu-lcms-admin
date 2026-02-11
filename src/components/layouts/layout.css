@@ -29,6 +29,7 @@
   left: 0;
   top: 0;
   z-index: 100;
+  transition: width 0.3s ease;
 }
 
 .sidebar h2 {
@@ -63,6 +64,68 @@
   gap: 12px;
 }
 
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.sidebar-toggle-btn {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-toggle-btn img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-toggle {
+  color: var(--gray);
+}
+
+.dashboard-container.sidebar-collapsed .sidebar {
+  width: 80px;
+}
+
+.dashboard-container.sidebar-collapsed .sidebar h2,
+.dashboard-container.sidebar-collapsed .sidebar .sidebar-label {
+  display: none;
+}
+
+.dashboard-container.sidebar-collapsed .sidebar a,
+.dashboard-container.sidebar-collapsed .sidebar button {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+  gap: 0;
+}
+
+.dashboard-container.sidebar-collapsed .content {
+  margin-left: 80px;
+}
+
 .sidebar a:hover,
 .sidebar button:hover {
   background: rgba(227, 27, 35, 0.2);
@@ -82,6 +145,12 @@
   width: 20px;
   height: 20px;
   flex-shrink: 0;
+}
+
+.sidebar-icon img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 /* ============================================
