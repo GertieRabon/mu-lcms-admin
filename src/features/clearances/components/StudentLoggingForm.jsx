@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Add useEffect here
 import { submitStudentLog } from '../services/clearanceService';
 import { Button } from '../../../components/ui';
 import '../student-log.css';
@@ -14,6 +14,36 @@ const StudentLoggingForm = () => {
         program: '',
         purpose: [] // Initialized as array for multiple checkmarks
     });
+
+    // Background Sync Effect
+    useEffect(() => {
+        const handleSync = async () => {
+            if (navigator.onLine) {
+                const queue = JSON.parse(localStorage.getItem('offline_logs') || '[]');
+                if (queue.length === 0) return;
+
+                console.log(`Attempting to sync ${queue.length} queued logs...`);
+                const remainingQueue = [];
+
+                for (const item of queue) {
+                    try {
+                        const submissionData = { ...item, purpose: item.purpose.join(', ') };
+                        await submitStudentLog(submissionData);
+                    } catch (err) {
+                        remainingQueue.push(item); // Keep in queue if sync fails
+                    }
+                }
+
+                localStorage.setItem('offline_logs', JSON.stringify(remainingQueue));
+                if (remainingQueue.length === 0) {
+                    alert("All offline logs have been synchronized!");
+                }
+            }
+        };
+
+        window.addEventListener('online', handleSync);
+        return () => window.removeEventListener('online', handleSync);
+    }, []);
 
     const handlePurposeChange = (purposeName) => {
         setForm(prev => {
@@ -39,6 +69,8 @@ const StudentLoggingForm = () => {
             const queue = JSON.parse(localStorage.getItem('offline_logs') || '[]');
             localStorage.setItem('offline_logs', JSON.stringify([...queue, form]));
             alert("Offline: Log queued locally.");
+
+            // setForm({ studentNo: '', firstName: '', middleName: '', lastName: '', program: '', purpose: [] });
             return;
         }
 
