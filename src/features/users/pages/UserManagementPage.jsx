@@ -89,9 +89,13 @@ const UserManagementPage = () => {
       // Refresh the table
       fetchUsersData();
     } catch (err) {
-      // Show specific error message for email_exists
-      if (err.code === 'email_exists') {
-        toast.error(err.message);
+      console.error("Full error object:", err);
+      console.error("Error code:", err.code);
+      console.error("Error message:", err.message);
+      
+      // Show specific error message for duplicates
+      if (err.code === 'email_exists' || err.message?.includes('Duplicated')) {
+        toast.error(err.message || 'Duplicated user data: This email is already registered.');
       } else {
         toast.error("Invitation failed: " + (err.message || JSON.stringify(err)));
       }
@@ -152,18 +156,18 @@ const UserManagementPage = () => {
       type: 'delete',
       message: `Delete ${user.first_name} ${user.last_name}? This action cannot be undone.`,
       user: user,
-      onConfirm: performDelete
+      onConfirm: () => performDelete(user) // Pass user directly
     });
     setShowConfirmModal(true);
   };
 
-  const performDelete = async () => {
-    const user = confirmAction.user;
+  const performDelete = async (user) => {
     setInviting(true);
     try {
       await deleteUser(user.user_id);
       toast.success('User deleted successfully');
       setShowConfirmModal(false);
+      setConfirmAction(null);
       fetchUsersData();
     } catch (err) {
       toast.error("Delete failed: " + (err.message || JSON.stringify(err)));
