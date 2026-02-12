@@ -54,23 +54,35 @@ export const inviteStaff = async (staffData) => {
     });
 
     if (error) {
-      console.error('Edge Function error:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
+      console.error('Edge Function error object:', error);
+      console.error('Error message:', error.message);
       
-      // Check for specific error codes
-      if (error.context?.error?.code === 'email_exists' || error.message?.includes('already been registered')) {
-        const emailExistsError = new Error('This email address is already registered. Please use a different email or delete the existing account first.');
-        emailExistsError.code = 'email_exists';
-        throw emailExistsError;
+      // Parse the error response to get code and message
+      let errorCode = 'unknown_error';
+      let errorMessage = 'An error occurred during invitation';
+      
+      // error.context is a Response object, we need to extract the body
+      try {
+        if (error.context && typeof error.context.json === 'function') {
+          const errorBody = await error.context.json();
+          console.error('Error response body:', errorBody);
+          errorCode = errorBody.code || errorCode;
+          errorMessage = errorBody.error || errorMessage;
+        } else {
+          errorMessage = error.message;
+        }
+      } catch (parseErr) {
+        console.error('Failed to parse error response:', parseErr);
+        errorMessage = error.message;
       }
       
-      // Try to extract error message from response
-      if (error.context?.error?.message) {
-        console.error('Server error message:', error.context.error.message);
-        throw new Error(error.context.error.message);
-      }
+      console.error('Parsed error code:', errorCode);
+      console.error('Parsed error message:', errorMessage);
       
-      throw error;
+      // Create and throw error with proper code
+      const err = new Error(errorMessage);
+      err.code = errorCode;
+      throw err;
     }
 
     console.log('Invitation sent successfully:', data);
@@ -117,23 +129,37 @@ export const updateUser = async (userId, userData) => {
 };
 
 /**
- * Delete a user (from both database and auth)
+ * Delete a user (from both database and auth via Edge Function)
  */
 export const deleteUser = async (userId) => {
   try {
     console.log('🔵 Deleting user:', userId);
     
-    // Call Edge Function to delete from both Auth and Database
+    // Call edge function to delete from both Auth and database
     const { data, error } = await supabase.functions.invoke('delete-user', {
       body: { userId }
     });
 
     if (error) {
-      console.error('❌ Edge Function delete error:', error);
+      console.error('❌ Delete function error:', error);
+      console.error('Error message:', error.message);
+      console.error('Error context:', error.context);
+      
+      // Try to extract error response body
+      try {
+        if (error.context && typeof error.context.json === 'function') {
+          const errorBody = await error.context.json();
+          console.error('Error response body:', errorBody);
+          throw new Error(errorBody.error || error.message);
+        }
+      } catch (parseErr) {
+        console.error('Failed to parse error response:', parseErr);
+      }
+      
       throw error;
     }
 
-    console.log('✅ User deleted successfully from both systems:', data);
+    console.log('✅ User deleted successfully from Auth and database:', data);
     return true;
   } catch (err) {
     console.error("❌ Delete failed:", err);

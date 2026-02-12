@@ -9,12 +9,11 @@ const StudentPortalPage = () => {
 
     return (
         <div className="auth-container">
-            <div className="auth-form" style={{ maxWidth: '500px' }}>
-                {/* Use the new .portal-header class */}
-                <div className="portal-header">
-                    <h2 className="portal-title">Student Log</h2>
+            <div className="auth-form">
 
-                    {/* You can also add styles directly to the Button via className if needed */}
+                <div className="portal-header">
+                    <h2 className="portal-title">Clearance Request Form</h2>
+
                     <Button
                         variant="ghost"
                         size="sm"
@@ -25,8 +24,9 @@ const StudentPortalPage = () => {
 
                 </div>
 
-                <StudentLoggingForm />
-
+                <div className="portal-body">
+                    <StudentLoggingForm />
+                </div>
                 <p className="portal-footer-text">
                     Please ensure your Student Number is correct before submitting.
                 </p>

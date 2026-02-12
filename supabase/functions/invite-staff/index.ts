@@ -34,7 +34,22 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
-    // 3. Invite the user via official email
+    // 3. Check if user already exists in the users table
+    console.log('Checking if user already exists:', email)
+    const { data: existingUser, error: checkError } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single()
+
+    if (existingUser) {
+      console.error('User already exists:', email)
+      const error = new Error(`Duplicated user data: This email address is already registered. Please use a different email or delete the existing account first.`)
+      error.code = 'email_exists'
+      throw error
+    }
+
+    // 4. Invite the user via official email
     const redirectUrl = `${Deno.env.get('REDIRECT_URL') || 'http://localhost:5173'}/change-password`
     console.log('Redirect URL for invite:', redirectUrl)
     
@@ -48,12 +63,12 @@ Deno.serve(async (req) => {
       throw error;
     }
 
-    // 4. Get the invited user's ID
+    // 5. Get the invited user's ID
     const userId = data?.user?.id
     console.log('Invited user ID:', userId);
     if (!userId) throw new Error('Failed to get user ID from invitation')
 
-    // 5. Insert user profile into users table
+    // 6. Insert user profile into users table
     const { error: insertError } = await supabaseAdmin
       .from('users')
       .insert({
@@ -80,12 +95,18 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Function error:', error)
+    
+    // Check if it's a duplicate user error
+    const errorMessage = error?.message || error?.toString() || ''
+    const isDuplicateError = errorMessage.includes('Duplicated user data') || errorMessage.includes('user already exists')
+    
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: error.message || error.toString(),
+      code: isDuplicateError ? 'email_exists' : 'unknown_error',
       details: error.toString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: isDuplicateError ? 400 : 400,
     })
   }
 })
