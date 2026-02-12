@@ -39,7 +39,11 @@ function App() {
           }>
             <Route index element={<HomePage />} />
             <Route path="clearances" element={<ClearanceListPage />} />
-            <Route path="history" element={<HistoryPage />} />
+            <Route path="history" element={
+              <ProtectedRoute roleRequired="LIBRARY_ADMIN">
+                <HistoryPage />
+              </ProtectedRoute>
+            } />
             
             {/* Admin Module */}
             <Route path="users" element={

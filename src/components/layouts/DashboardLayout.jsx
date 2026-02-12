@@ -17,6 +17,7 @@ const DashboardLayout = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const isAdmin = user?.role === 'LIBRARY_ADMIN';
 
   // Auto-logout on inactivity: 30 mins timeout, warning at 25 mins
   const handleInactivityLogout = useCallback(async () => {
@@ -85,13 +86,15 @@ const DashboardLayout = () => {
               </span>
               <span className="sidebar-label">Clearances</span>
             </Link>
-            <Link to="/history">
-              <span className="sidebar-icon">
-                <img src={HistoryIcon} alt="History" />
-              </span>
-              <span className="sidebar-label">History</span>
-            </Link>
-            {user?.role === 'LIBRARY_ADMIN' && (
+            {isAdmin && (
+              <Link to="/history">
+                <span className="sidebar-icon">
+                  <img src={HistoryIcon} alt="History" />
+                </span>
+                <span className="sidebar-label">History</span>
+              </Link>
+            )}
+            {isAdmin && (
               <Link to="/users">
                 <span className="sidebar-icon">
                   <img src={UsersIcon} alt="Users" />
@@ -99,18 +102,18 @@ const DashboardLayout = () => {
                 <span className="sidebar-label">Users</span>
               </Link>
             )}
-          <Button
-            onClick={handleLogoutClick}
-            variant="ghost"
-            size="sm"
-            style={{ width: '100%' }}
-          >
-            <span className="sidebar-icon">
-              <img src={LogoutIcon} alt="Logout" />
-            </span>
-            <span className="sidebar-label">Logout</span>
-          </Button>
-        </nav>
+            <Button
+              onClick={handleLogoutClick}
+              variant="ghost"
+              size="sm"
+              style={{ width: '100%' }}
+            >
+              <span className="sidebar-icon">
+                <img src={LogoutIcon} alt="Logout" />
+              </span>
+              <span className="sidebar-label">Logout</span>
+            </Button>
+          </nav>
         )}
       </aside>
 
