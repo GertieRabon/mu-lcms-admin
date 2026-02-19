@@ -30,7 +30,22 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
-    // Delete from users table first
+    // Step 1: Delete audit trail records for this user (foreign key constraint)
+    console.log('Deleting audit trail records for user:', userId)
+    const { error: deleteAuditError } = await supabaseAdmin
+      .from('audit_trail')
+      .delete()
+      .eq('performed_by', userId)
+
+    if (deleteAuditError) {
+      console.error('Audit trail delete error:', deleteAuditError)
+      throw deleteAuditError
+    }
+
+    console.log('Audit trail records deleted')
+
+    // Step 2: Delete from users table
+    console.log('Deleting user from database:', userId)
     const { error: deleteDbError } = await supabaseAdmin
       .from('users')
       .delete()
@@ -43,7 +58,8 @@ Deno.serve(async (req) => {
 
     console.log('User deleted from database')
 
-    // Delete from auth.users
+    // Step 3: Delete from auth.users
+    console.log('Deleting user from auth system:', userId)
     const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
     if (deleteAuthError) {

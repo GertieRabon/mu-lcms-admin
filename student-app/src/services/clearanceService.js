@@ -10,6 +10,7 @@ export const submitStudentLog = async (formData) => {
       first_name: formData.firstName,
       middle_name: formData.middleName,
       last_name: formData.lastName,
+      email: formData.email,
       program: formData.program,
       purpose_of_clearance: formData.purpose
     }])

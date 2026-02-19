@@ -11,6 +11,7 @@ const StudentLoggingForm = () => {
         firstName: '',
         middleName: '',
         lastName: '',
+        email: '',
         program: '',
         purpose: [] // Initialized as array for multiple checkmarks
     });
@@ -80,7 +81,7 @@ const StudentLoggingForm = () => {
         try {
             await submitStudentLog(submissionData);
             alert("Log submitted successfully!");
-            setForm({ studentNo: '', firstName: '', middleName: '', lastName: '', program: '', purpose: [] });
+            setForm({ studentNo: '', firstName: '', middleName: '', lastName: '', email: '', program: '', purpose: [] });
         } catch (err) {
             console.error("Submission failed:", err);
             alert("Error: " + err.message);
@@ -114,6 +115,20 @@ const StudentLoggingForm = () => {
                             </option>
                         ))}
                     </select>
+                </div>
+            </div>
+
+            <hr className="line" />
+
+            <div className="form-row">
+                <div className="form-group" style={{width: '100%'}}>
+                    <label>Email</label>
+                    <input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => setForm({...form, email: e.target.value})}
+                        required
+                    />
                 </div>
             </div>
 
