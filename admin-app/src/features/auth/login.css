@@ -11,10 +11,17 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--light) 0%, #ffffff 100%);
   padding: 20px;
-  max-width: 500px;
-  margin: 0 auto;
+}
+
+.auth-container.auth-container--login {
+  background:
+    linear-gradient(135deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.45)),
+    url('../../assets/login.jpg') no-repeat center center / cover;
+  background-size: cover;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .auth-form {

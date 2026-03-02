@@ -60,7 +60,7 @@ export const downloadAuditPDF = (data) => {
     body: rows,
     theme: 'grid',
     styles: { fontSize: 8 },
-    headStyles: { fillColor: [227, 27, 35] } // Mapua Red
+    headStyles: { fillColor: [58, 134, 255] } // Primary Blue
   });
 
   doc.save(`${getTimestampedFilename("audit_trail")}.pdf`);

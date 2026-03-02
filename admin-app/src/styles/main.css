@@ -1,7 +1,7 @@
 /* ============================================
    LIBRARY CLEARANCE MONITORING SYSTEM
    Global Stylesheet
-   Theme: Mapuan Colors (Red #E31B23, Yellow #FFC72C)
+   Theme: Blue & Gold (Primary #3A86FF, Yellow #FFC72C)
    ============================================ */
 
 /* ============================================
@@ -9,11 +9,11 @@
    ============================================ */
 
 :root {
-  /* Mapuan Color Palette */
-  --primary: #E31B23;           /* Mapuan Red */
-  --secondary: #FFC72C;         /* Mapuan Yellow */
-  --primary-dark: #c71319;      /* Darker Red */
-  --primary-light: #f54d54;     /* Lighter Red */
+  /* Primary Color Palette */
+  --primary: #3A86FF;           /* Primary Blue */
+  --secondary: #FFC72C;         /* Accent Yellow */
+  --primary-dark: #265DCC;      /* Darker Blue */
+  --primary-light: #A5C8FF;     /* Lighter Blue */
   --secondary-dark: #f5b81c;    /* Darker Yellow */
   --secondary-light: #ffd639;   /* Lighter Yellow */
   
@@ -188,7 +188,7 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(227, 27, 35, 0.1);
+  box-shadow: 0 0 0 3px rgba(58, 134, 255, 0.15);
 }
 
 input:disabled,

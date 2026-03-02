@@ -44,5 +44,5 @@
   color: #ddd;
 }
 .password-toggle.active {
-  color: var(--mapuan-red);
+  color: var(--primary);
 }

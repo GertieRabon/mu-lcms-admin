@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useInactivityTimeout } from '../../hooks/useInactivityTimeout';
 import { Button, Modal } from '../ui';
@@ -9,7 +9,33 @@ import HistoryIcon from '../../assets/History.png';
 import UsersIcon from '../../assets/Users.png';
 import LogoutIcon from '../../assets/Logout.png';
 import HamburgerIcon from '../../assets/Hamburger.png';
+import MapuaLogo from '../../assets/mapualogo.png';
 import './layout.css';
+
+const NavItem = ({ to, icon, label, onClick }) => {
+  if (onClick) {
+    return (
+      <button type="button" className="nav-item" onClick={onClick}>
+        <span className="sidebar-icon">
+          <img src={icon} alt={label} />
+        </span>
+        <span className="sidebar-label">{label}</span>
+      </button>
+    );
+  }
+
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+    >
+      <span className="sidebar-icon">
+        <img src={icon} alt={label} />
+      </span>
+      <span className="sidebar-label">{label}</span>
+    </NavLink>
+  );
+};
 
 const DashboardLayout = () => {
   const { user, logout, loading } = useAuth();
@@ -19,13 +45,12 @@ const DashboardLayout = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isAdmin = user?.role === 'LIBRARY_ADMIN';
 
-  // Auto-logout on inactivity: 30 mins timeout, warning at 25 mins
   const handleInactivityLogout = useCallback(async () => {
     try {
       await logout();
       navigate('/login', { replace: true });
     } catch (err) {
-      console.error("Inactivity logout error:", err);
+      console.error('Inactivity logout error:', err);
       navigate('/login', { replace: true });
     }
   }, [logout, navigate]);
@@ -36,27 +61,23 @@ const DashboardLayout = () => {
     5   // 5 minutes warning
   );
 
-  const handleLogoutClick = () => {
-    setShowLogoutModal(true);
-  };
-
   const performLogout = async () => {
     setIsLoggingOut(true);
     try {
       await logout();
       setShowLogoutModal(false);
-      // Navigate after logout is complete
       navigate('/login', { replace: true });
     } catch (err) {
-      console.error("Logout error:", err);
-      alert("Error logging out. Please try again.");
+      console.error('Logout error:', err);
+      alert('Error logging out. Please try again.');
       setIsLoggingOut(false);
     }
   };
 
-  const toggleSidebar = () => {
-    setIsSidebarCollapsed((prev) => !prev);
-  };
+  const displayName =
+    user?.first_name && user?.last_name
+      ? `${user.first_name}${user.middle_name ? ` ${user.middle_name}` : ''} ${user.last_name}`
+      : user?.email || 'User';
 
   return (
     <div className={`dashboard-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
@@ -65,56 +86,36 @@ const DashboardLayout = () => {
           <button
             type="button"
             className="sidebar-toggle-btn"
-            onClick={toggleSidebar}
+            onClick={() => setIsSidebarCollapsed((prev) => !prev)}
             aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <img src={HamburgerIcon} alt="Toggle sidebar" />
           </button>
           <h2>Library CMS</h2>
         </div>
+
         {!loading && (
           <nav>
-            <Link to="/">
-              <span className="sidebar-icon">
-                <img src={HomeIcon} alt="Home" />
-              </span>
-              <span className="sidebar-label">Home</span>
-            </Link>
-            <Link to="/clearances">
-              <span className="sidebar-icon">
-                <img src={DocumentsIcon} alt="Clearances" />
-              </span>
-              <span className="sidebar-label">Clearances</span>
-            </Link>
+            <NavItem to="/"           icon={HomeIcon}      label="Home"       />
+            <NavItem to="/clearances" icon={DocumentsIcon} label="Clearances" />
             {isAdmin && (
-              <Link to="/history">
-                <span className="sidebar-icon">
-                  <img src={HistoryIcon} alt="History" />
-                </span>
-                <span className="sidebar-label">History</span>
-              </Link>
+              <NavItem to="/history"  icon={HistoryIcon}   label="History"    />
             )}
             {isAdmin && (
-              <Link to="/users">
-                <span className="sidebar-icon">
-                  <img src={UsersIcon} alt="Users" />
-                </span>
-                <span className="sidebar-label">Users</span>
-              </Link>
+              <NavItem to="/users"    icon={UsersIcon}     label="Users"      />
             )}
-            <Button
-              onClick={handleLogoutClick}
-              variant="ghost"
-              size="sm"
-              style={{ width: '100%' }}
-            >
-              <span className="sidebar-icon">
-                <img src={LogoutIcon} alt="Logout" />
-              </span>
-              <span className="sidebar-label">Logout</span>
-            </Button>
+            <NavItem
+              icon={LogoutIcon}
+              label="Logout"
+              onClick={() => setShowLogoutModal(true)}
+            />
           </nav>
         )}
+
+        <div className="sidebar-logo">
+          <img src={MapuaLogo} alt="Mapua Logo" />
+        </div>
+        
       </aside>
 
       {/* Logout Confirmation Modal */}
@@ -129,15 +130,15 @@ const DashboardLayout = () => {
             Are you sure you want to logout? You'll need to log in again to access the system.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={() => setShowLogoutModal(false)}
               disabled={isLoggingOut}
             >
               Cancel
             </Button>
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               onClick={performLogout}
               disabled={isLoggingOut}
             >
@@ -162,22 +163,20 @@ const DashboardLayout = () => {
             Click "Continue" to stay logged in or your session will be automatically closed.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <Button 
-              variant="primary" 
-              onClick={dismissWarning}
-            >
+            <Button variant="primary" onClick={dismissWarning}>
               Continue Session
             </Button>
           </div>
         </div>
       </Modal>
+
       <main className="content">
         <header>
           <div className="header-left">
-            <span>Welcome, {user?.first_name && user?.last_name ? `${user.first_name}${user.middle_name ? ` ${user.middle_name}` : ''} ${user.last_name}` : user?.email || 'User'}</span>
+            <span>Welcome, {displayName}</span>
           </div>
         </header>
-        <Outlet /> {/* This renders the specific page (Clearances or Users) */}
+        <Outlet />
       </main>
     </div>
   );

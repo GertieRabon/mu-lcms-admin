@@ -4,7 +4,7 @@
     align-items: center;     /* Centers vertically */
     min-height: 100vh;      /* Takes up 100% of the screen height */
     padding: 20px;
-    background: var(--light);
+    background: transparent;
     width: 100%;            /* Ensure container spans full width */
     box-sizing: border-box;
     max-width: 500px;

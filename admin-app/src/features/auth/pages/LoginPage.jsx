@@ -117,7 +117,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="auth-container">
+    <div className="auth-container auth-container--login">
       {isLoggingIn && <Loader fullscreen size="md" />}
       <form onSubmit={handleLogin} className="auth-form">
         <h1>Library Login</h1>

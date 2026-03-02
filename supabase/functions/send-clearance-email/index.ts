@@ -52,9 +52,9 @@ serve(async (req: Request) => {
       : `
         <p>Dear ${studentName},</p>
         <p>This is an automated notification from the <strong>Library Clearance Monitoring System </strong> of Mapúa Library.</p>
-        <p>Your library clearance request has been reviewed and marked as <strong style="color:red;">NOT APPROVED</strong> in the system.</p>
+        <p>Your library clearance request has been reviewed and marked as <strong style="color:#3A86FF;">NOT APPROVED</strong> in the system.</p>
         <p>Based on the review, the following remarks were provided:</p>
-        <p style="background: #ecf0f1; padding: 10px; border-left: 4px solid #e74c3c;">
+        <p style="background: #ecf0f1; padding: 10px; border-left: 4px solid #3A86FF;">
           ${remarks || "No reason provided"}
         </p>
         <p>Please address the concern listed above before requesting clearance again.</p>
