@@ -1,12 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-/**
- * Filter data based on a timeframe (week, month, year)
- * @param {Array} data - The array of objects to filter
- * @param {string} dateField - The field name containing the timestamp (e.g., 'timestamp' or 'data_logged')
- * @param {string} timeframe - 'week', 'month', 'year', or 'all'
- */
 const filterByTimeframe = (data, dateField, timeframe) => {
   if (!timeframe || timeframe === 'all') return data;
 
@@ -35,10 +29,10 @@ const getTimestampedFilename = (prefix, timeframe = 'all') => {
   return `${prefix}${timeframeSuffix}_${dateStr}_${timeStr}`;
 };
 
-// --- Audit Log Exports ---
-
 export const downloadAuditCSV = (data, timeframe = 'all') => {
   const filteredData = filterByTimeframe(data, 'timestamp', timeframe);
+  if (filteredData.length === 0) throw new Error("No data available for the selected timeframe.");
+
   const generatedAt = `Report Generated: ${new Date().toLocaleString()} (Filter: ${timeframe})`;
   const headers = ["Date", "Librarian", "Student ID", "Old Status", "New Status", "Remarks"];
   
@@ -66,6 +60,8 @@ export const downloadAuditCSV = (data, timeframe = 'all') => {
 
 export const downloadAuditPDF = (data, timeframe = 'all') => {
   const filteredData = filterByTimeframe(data, 'timestamp', timeframe);
+  if (filteredData.length === 0) throw new Error("No data available for the selected timeframe.");
+
   const doc = new jsPDF();
   const generatedAt = `Report Generated: ${new Date().toLocaleString()} (Filter: ${timeframe})`;
   
@@ -90,28 +86,33 @@ export const downloadAuditPDF = (data, timeframe = 'all') => {
     body: rows,
     theme: 'grid',
     styles: { fontSize: 8 },
-    headStyles: { fillColor: [58, 134, 255] } 
+    headStyles: { fillColor: [58, 134, 255] }
   });
 
   doc.save(`${getTimestampedFilename("audit_trail", timeframe)}.pdf`);
 };
 
-// --- Clearance Report Exports ---
-
 export const downloadClearanceReportCSV = (reportData, timeframe = 'all') => {
   const filteredData = filterByTimeframe(reportData, 'data_logged', timeframe);
+  if (filteredData.length === 0) throw new Error("No data available for the selected timeframe.");
+
   const generatedAt = `Report Generated: ${new Date().toLocaleString()} (Filter: ${timeframe})`;
   const headers = ["Date Logged", "Student Number", "Full Name", "Program", "Purpose", "Status", "Verified By"];
   
   const rows = filteredData.map(item => {
     const s = item.student || {};
     const l = item.librarian || {};
+    
+    // Safely extract names from related tables
+    const programName = s.program?.program_name || 'N/A';
+    const purposeName = s.purpose?.purpose_name || 'N/A';
+
     return [
       new Date(item.data_logged).toLocaleDateString(),
       s.student_number || 'N/A',
       `"${s.first_name} ${s.last_name}"`,
-      s.program || 'N/A',
-      `"${s.purpose_of_clearance || ''}"`,
+      `"${programName}"`,
+      `"${purposeName}"`,
       item.clearance_status,
       l.first_name ? `"${l.first_name} ${l.last_name}"` : 'Pending'
     ];
@@ -132,6 +133,8 @@ export const downloadClearanceReportCSV = (reportData, timeframe = 'all') => {
 
 export const downloadClearanceReportPDF = (reportData, timeframe = 'all') => {
   const filteredData = filterByTimeframe(reportData, 'data_logged', timeframe);
+  if (filteredData.length === 0) throw new Error("No data available for the selected timeframe.");
+
   const doc = new jsPDF();
   const generatedAt = `Report Generated: ${new Date().toLocaleString()} (Filter: ${timeframe})`;
   
@@ -144,12 +147,17 @@ export const downloadClearanceReportPDF = (reportData, timeframe = 'all') => {
   const rows = filteredData.map(item => {
     const s = item.student || {};
     const l = item.librarian || {};
+    
+    // Safely extract names from related tables
+    const programName = s.program?.program_name || 'N/A';
+    const purposeName = s.purpose?.purpose_name || 'N/A';
+
     return [
       new Date(item.data_logged).toLocaleDateString(),
       s.student_number || 'N/A',
       `${s.first_name} ${s.last_name}`,
-      s.program || 'N/A',
-      item.purpose_of_clearance || '',
+      programName,
+      purposeName,
       item.clearance_status,
       l.first_name ? `${l.first_name} ${l.last_name}` : 'Pending'
     ];

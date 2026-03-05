@@ -1,38 +1,5 @@
 import { supabase } from '../../../services/supabaseClient';
 
-// --- 1. Student Logging Logic (Fixed: Added this missing function) ---
-export const submitStudentLog = async (formData) => {
-  // Insert into "student" table first
-  const { data: student, error: sError } = await supabase
-    .from('student')
-    .insert([{
-      student_number: formData.studentNo,
-      first_name: formData.firstName,
-      middle_name: formData.middleName,
-      last_name: formData.lastName,
-      program: formData.program,
-      purpose_of_clearance: formData.purpose
-    }])
-    .select()
-    .single();
-
-  if (sError) throw sError;
-
-  // Then insert into "clearance" table
-  const now = new Date().toISOString();
-  const { error: logError } = await supabase
-    .from('clearance')
-    .insert([{
-      student_id: student.student_id,
-      clearance_status: 'NOT CLEARED',
-      data_logged: now,
-      last_updated_at: now
-    }]);
-
-  if (logError) throw logError;
-};
-
-// --- 2. Clearance List Logic ---
 export const fetchClearances = async () => {
   const { data: clearanceData, error: clearanceError } = await supabase
     .from('clearance')
@@ -44,9 +11,14 @@ export const fetchClearances = async () => {
 
   const studentIds = Array.from(new Set(clearanceData.map((c) => c.student_id).filter(Boolean)));
   
+  // Updated to join program and purpose tables based on the supabase
   const { data: studentsData, error: studentsError } = await supabase
     .from('student')
-    .select('*')
+    .select(`
+      *,
+      program:program_id(program_name),
+      purpose:purpose_id(purpose_name)
+    `)
     .in('student_id', studentIds);
 
   if (studentsError) throw studentsError;
@@ -58,18 +30,23 @@ export const fetchClearances = async () => {
   }));
 };
 
-// --- 3. Report Data Logic ---
 export const fetchClearanceReportData = async () => {
+  // Updated to join program and purpose tables based on your schema
   const { data, error } = await supabase
     .from('clearance')
     .select(`
       clearance_status,
       data_logged,
       student:student_id (
-        student_number, first_name, last_name, program, purpose_of_clearance
+        student_number, 
+        first_name, 
+        last_name, 
+        program:program_id(program_name),
+        purpose:purpose_id(purpose_name)
       ),
       librarian:last_updated_by (
-        first_name, last_name
+        first_name, 
+        last_name
       )
     `)
     .order('data_logged', { ascending: false });
@@ -78,17 +55,7 @@ export const fetchClearanceReportData = async () => {
   return data || [];
 };
 
-// --- 4. Dashboard Metrics & Activity ---
-
-/**
- * Fetch high-level clearance metrics for the dashboard.
- *
- * - pending: clearances explicitly marked as 'NOT CLEARED'
- * - cleared: clearances marked as 'CLEARED'
- * - unfinished: all clearances that are not 'CLEARED'
- */
 export const fetchDashboardMetrics = async () => {
-  // 1) Pending (NOT CLEARED)
   const { count: pending, error: pendingError } = await supabase
     .from('clearance')
     .select('*', { count: 'exact', head: true })
@@ -96,7 +63,6 @@ export const fetchDashboardMetrics = async () => {
 
   if (pendingError) throw pendingError;
 
-  // 2) Cleared
   const { count: cleared, error: clearedError } = await supabase
     .from('clearance')
     .select('*', { count: 'exact', head: true })
@@ -104,7 +70,6 @@ export const fetchDashboardMetrics = async () => {
 
   if (clearedError) throw clearedError;
 
-  // 3) Total
   const { count: total, error: totalError } = await supabase
     .from('clearance')
     .select('*', { count: 'exact', head: true });
@@ -120,9 +85,6 @@ export const fetchDashboardMetrics = async () => {
   };
 };
 
-/**
- * Fetch recent audit trail entries for the dashboard "Recent Activity" section.
- */
 export const fetchRecentAuditActivity = async (limit = 5) => {
   const { data, error } = await supabase
     .from('audit_trail')

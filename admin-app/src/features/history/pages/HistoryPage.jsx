@@ -1,17 +1,20 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../../services/supabaseClient';
 import { downloadAuditCSV, downloadAuditPDF } from '../../../util/csvHelpers';
-import { Button } from '../../../components/ui'; // Use your existing Button component
+import { Button } from '../../../components/ui'; 
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import '../history.css';
 
 const HistoryPage = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // New State for Filters and Sorting
+  // State for Filters, Sorting, and Timeframe
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
+  const [timeframe, setTimeframe] = useState('all'); // Timeframe state for downloads
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -31,9 +34,8 @@ const HistoryPage = () => {
     };
 
     fetchLogs();
-  }, [sortOrder]); // Re-fetch when sort order changes
+  }, [sortOrder]);
 
-  // Logic for Search and Filtering
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
       const matchesSearch = 
@@ -48,8 +50,37 @@ const HistoryPage = () => {
     });
   }, [logs, searchQuery, statusFilter]);
 
+  // Handle CSV Download
+  const handleDownloadCSV = () => {
+    try {
+      if (filteredLogs.length === 0) {
+        toast.info("No records to export.");
+        return;
+      }
+      downloadAuditCSV(filteredLogs, timeframe);
+      toast.success("CSV report downloaded successfully");
+    } catch (err) {
+      toast.error(`Export failed: ${err.message}`);
+    }
+  };
+
+  // Handle PDF Download
+  const handleDownloadPDF = () => {
+    try {
+      if (filteredLogs.length === 0) {
+        toast.info("No records to export.");
+        return;
+      }
+      downloadAuditPDF(filteredLogs, timeframe);
+      toast.success("PDF report downloaded successfully");
+    } catch (err) {
+      toast.error(`PDF Export failed: ${err.message}`);
+    }
+  };
+
   return (
     <div className="history-container" style={{ position: 'relative', minHeight: '80vh' }}>
+      <ToastContainer position="top-right" autoClose={3000} />
       <h2>History</h2>
       <p>Clearance request history and records</p>
 
@@ -120,12 +151,22 @@ const HistoryPage = () => {
         </table>
       )}
 
-      {/* Export Floating Action Buttons */}
-      <div style={{ position: 'fixed', bottom: '30px', right: '30px', display: 'flex', gap: '10px', zIndex: 1000 }}>
-        <button onClick={() => downloadAuditCSV(filteredLogs)} className="btn-secondary" style={{ padding: '12px 24px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
+      {/* Export Floating Action Buttons with Timeframe */}
+      <div style={{ position: 'fixed', bottom: '30px', right: '30px', display: 'flex', gap: '10px', zIndex: 1000, backgroundColor: 'white', padding: '10px', borderRadius: '8px', boxShadow: '0px 4px 12px rgba(0,0,0,0.15)', alignItems: 'center' }}>
+        <select 
+          value={timeframe} 
+          onChange={(e) => setTimeframe(e.target.value)} 
+          style={{ padding: '8px 12px', borderRadius: '5px', border: '1px solid #ddd', fontSize: '14px', backgroundColor: 'white' }}
+        >
+          <option value="all">All Time</option>
+          <option value="week">Last 7 Days</option>
+          <option value="month">Last 30 Days</option>
+          <option value="year">Last Year</option>
+        </select>
+        <button onClick={handleDownloadCSV} className="btn-secondary" style={{ padding: '10px 20px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', border: 'none' }}>
           Save CSV
         </button>
-        <button onClick={() => downloadAuditPDF(filteredLogs)} className="btn-primary" style={{ padding: '12px 24px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}>
+        <button onClick={handleDownloadPDF} className="btn-primary" style={{ padding: '10px 20px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', border: 'none', color: 'white' }}>
           Save PDF
         </button>
       </div>

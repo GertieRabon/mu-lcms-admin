@@ -14,6 +14,7 @@ export default function ClearanceListPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [timeframe, setTimeframe] = useState("all"); // Added state for timeframe
   const [rejectionRemarks, setRejectionRemarks] = useState("");
   const [showRejectionModal, setShowRejectionModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -38,8 +39,8 @@ export default function ClearanceListPage() {
     try {
       const data = await fetchClearanceReportData();
       if (data && data.length > 0) {
-        downloadClearanceReportCSV(data);
-        toast.success("✅ CSV report downloaded successfully");
+        downloadClearanceReportCSV(data, timeframe); // Passed timeframe
+        toast.success("CSV report downloaded successfully");
       } else {
         toast.info("No records to export.");
       }
@@ -52,8 +53,8 @@ export default function ClearanceListPage() {
     try {
       const data = await fetchClearanceReportData();
       if (data && data.length > 0) {
-        downloadClearanceReportPDF(data);
-        toast.success("✅ PDF report downloaded successfully");
+        downloadClearanceReportPDF(data, timeframe); 
+        toast.success("PDF report downloaded successfully");
       } else {
         toast.info("No records to export.");
       }
@@ -91,89 +92,24 @@ export default function ClearanceListPage() {
     setShowConfirmModal(false);
     
     try {
-      // FR5.2: Pass last_updated_at to implement optimistic concurrency control
       await updateClearanceWithAudit({
         clearance_uuid: item.clearance_uuid,
         student_id: item.student_id,
         old_status: item.clearance_status,
         new_status: newStatus,
-        performed_by: user?.user_id, // Uses correct schema field
+        performed_by: user?.user_id,
         editor_name: user?.first_name && user?.last_name ? `${user.first_name}${user.middle_name ? ` ${user.middle_name}` : ''} ${user.last_name}`.trim() : user?.email || 'Librarian',
         remarks,
-        last_fetched_at: item.last_updated_at // Added for conflict resolution
+        last_fetched_at: item.last_updated_at
       });
 
-      // Send email notification to student
-      try {
-        const student = item.student || {};
-        const studentEmail = student.email;
-        const studentName = `${student.first_name || ''} ${student.last_name || ''}`.trim();
+      toast.success(`Clearance marked as ${newStatus === "CLEARED" ? "APPROVED" : "REJECTED"}`);
 
-        if (studentEmail && studentName) {
-          try {
-            // Try using supabase.functions.invoke first
-            const emailResponse = await supabase.functions.invoke('send-clearance-email', {
-              body: {
-                email: studentEmail,
-                studentName: studentName,
-                status: newStatus,
-                remarks: remarks || null
-              }
-            });
-
-            if (emailResponse.error) {
-              console.warn('Email send warning:', emailResponse.error);
-              toast.warning(`Status updated, but email could not be sent: ${emailResponse.error.message}`);
-            } else {
-              console.log('Email sent successfully:', emailResponse.data);
-              toast.success(`✉️ Email sent to ${studentEmail}`);
-            }
-          } catch (invokeErr) {
-            console.warn('Function invoke failed, trying direct fetch:', invokeErr);
-            
-            // Fallback: Try direct fetch to the function URL
-            const supabaseUrl = supabase.supabaseUrl;
-            const { data: { session } } = await supabase.auth.getSession();
-            
-            const response = await fetch(
-              `${supabaseUrl}/functions/v1/send-clearance-email`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session?.access_token || ''}`,
-                },
-                body: JSON.stringify({
-                  email: studentEmail,
-                  studentName: studentName,
-                  status: newStatus,
-                  remarks: remarks || null
-                })
-              }
-            );
-
-            const result = await response.json();
-            
-            if (!response.ok) {
-              throw new Error(result.error || `HTTP ${response.status}`);
-            }
-
-            console.log('Email sent via direct fetch:', result);
-          }
-        }
-      } catch (emailErr) {
-        console.warn('Email service error:', emailErr);
-        toast.warning(`Status updated successfully, but email could not be sent: ${emailErr.message}`);
-      }
-
-      // Show status update notification
-      toast.success(`✅ Clearance marked as ${newStatus === "CLEARED" ? "APPROVED" : "REJECTED"}`);
-
-      loadData(); // Refresh list
+      loadData();
       setPendingUpdate(null);
       setRejectionRemarks("");
     } catch (err) { 
-      toast.error(`❌ Update failed: ${err.message}`);
+      toast.error(`Update failed: ${err.message}`);
       setPendingUpdate(null);
     }
   };
@@ -194,22 +130,21 @@ export default function ClearanceListPage() {
 
   return (
     <>
-      <ToastContainer 
-        position="top-right" 
-        autoClose={3000} 
-        hideProgressBar={false} 
-        newestOnTop={true} 
-        closeOnClick 
-        rtl={false} 
-        pauseOnFocusLoss 
-        draggable 
-        pauseOnHover
-        style={{ zIndex: 9999 }}
-      />
+      <ToastContainer position="top-right" autoClose={3000} />
       <div className="clearance-container p-6">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
           <h2>Clearance Requests</h2>
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <select 
+              value={timeframe} 
+              onChange={(e) => setTimeframe(e.target.value)} 
+              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', backgroundColor: 'white' }}
+            >
+              <option value="all">All Time</option>
+              <option value="week">Last 7 Days</option>
+              <option value="month">Last 30 Days</option>
+              <option value="year">Last Year</option>
+            </select>
             <Button onClick={handleExportCSV} variant="secondary">CSV Report</Button>
             <Button onClick={handleExportPDF} variant="secondary">PDF Report</Button>
           </div>
@@ -237,12 +172,13 @@ export default function ClearanceListPage() {
         <div className="clearance-list">
         {filteredClearances.map((item) => {
           const student = item.student || {};
+          const purposeName = student.purpose?.purpose_name || 'N/A';
           return (
             <div key={item.clearance_uuid} className="clearance-item">
               <div className="clearance-info">
                 <h4>{student.first_name} {student.last_name}</h4>
                 <p>Student No: {student.student_number}</p>
-                <p>Purpose: {student.purpose_of_clearance}</p>
+                <p>Purpose: {purposeName}</p>
                 <p>Status: <strong>{item.clearance_status}</strong></p>
               </div>
               <div className="button-group">
@@ -267,7 +203,6 @@ export default function ClearanceListPage() {
         </div>
       </div>
 
-      {/* Rejection Remarks Modal */}
       <Modal isOpen={showRejectionModal} onClose={() => { setShowRejectionModal(false); setRejectionRemarks(""); }} title="Reason for Rejection" size="sm">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <textarea
@@ -277,23 +212,12 @@ export default function ClearanceListPage() {
             style={{ width: '100%', minHeight: '120px', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px', boxSizing: 'border-box' }}
           />
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <Button
-              variant="ghost"
-              onClick={() => { setShowRejectionModal(false); setRejectionRemarks(""); }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleRejectionSubmit}
-            >
-              Next
-            </Button>
+            <Button variant="ghost" onClick={() => { setShowRejectionModal(false); setRejectionRemarks(""); }}>Cancel</Button>
+            <Button variant="primary" onClick={handleRejectionSubmit}>Next</Button>
           </div>
         </div>
       </Modal>
 
-      {/* Confirmation Modal */}
       <Modal isOpen={showConfirmModal} onClose={() => setShowConfirmModal(false)} title="Confirm Action" size="sm">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <p style={{ margin: 0, color: '#333', fontSize: '16px' }}>
@@ -306,22 +230,8 @@ export default function ClearanceListPage() {
             </div>
           )}
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <Button
-              variant="ghost"
-              onClick={() => { 
-                setShowConfirmModal(false); 
-                setRejectionRemarks(""); 
-                setPendingUpdate(null); 
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={pendingUpdate?.status === "NOT CLEARED" ? "danger" : "primary"}
-              onClick={handleConfirmUpdate}
-            >
-              Confirm
-            </Button>
+            <Button variant="ghost" onClick={() => { setShowConfirmModal(false); setRejectionRemarks(""); setPendingUpdate(null); }}>Cancel</Button>
+            <Button variant={pendingUpdate?.status === "NOT CLEARED" ? "danger" : "primary"} onClick={handleConfirmUpdate}>Confirm</Button>
           </div>
         </div>
       </Modal>
