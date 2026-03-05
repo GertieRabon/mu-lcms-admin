@@ -134,7 +134,7 @@ export default function ClearanceListPage() {
       <div className="clearance-container p-6">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
           <h2>Clearance Requests</h2>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div className="export-controls">
             <select 
               value={timeframe} 
               onChange={(e) => setTimeframe(e.target.value)} 
@@ -145,8 +145,8 @@ export default function ClearanceListPage() {
               <option value="month">Last 30 Days</option>
               <option value="year">Last Year</option>
             </select>
-            <Button onClick={handleExportCSV} variant="secondary">CSV Report</Button>
-            <Button onClick={handleExportPDF} variant="secondary">PDF Report</Button>
+            <Button onClick={handleExportCSV} variant="secondary" style={{ padding: '10px 20px', width: '140px' }}>CSV Report</Button>
+            <Button onClick={handleExportPDF} variant="secondary" style={{ padding: '10px 20px', width: '140px' }}>PDF Report</Button>
           </div>
         </div>
 
@@ -164,6 +164,7 @@ export default function ClearanceListPage() {
             style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
           >
             <option value="all">All Statuses</option>
+            <option value="PENDING">Pending</option>
             <option value="CLEARED">Cleared</option>
             <option value="NOT CLEARED">Not Cleared</option>
           </select>
@@ -191,8 +192,7 @@ export default function ClearanceListPage() {
                  </button>
                  <button 
                     onClick={() => handleStatusUpdate(item, "NOT CLEARED")} 
-                    className="btn-reject" 
-                    disabled={item.clearance_status === "NOT CLEARED"}
+                    className="btn-reject"
                  >
                    Reject
                  </button>

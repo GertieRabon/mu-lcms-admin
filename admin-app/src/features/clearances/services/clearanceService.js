@@ -59,9 +59,16 @@ export const fetchDashboardMetrics = async () => {
   const { count: pending, error: pendingError } = await supabase
     .from('clearance')
     .select('*', { count: 'exact', head: true })
-    .eq('clearance_status', 'NOT CLEARED');
+    .eq('clearance_status', 'PENDING');
 
   if (pendingError) throw pendingError;
+
+  const { count: notCleared, error: notClearedError } = await supabase
+    .from('clearance')
+    .select('*', { count: 'exact', head: true })
+    .eq('clearance_status', 'NOT CLEARED');
+
+  if (notClearedError) throw notClearedError;
 
   const { count: cleared, error: clearedError } = await supabase
     .from('clearance')
@@ -76,7 +83,7 @@ export const fetchDashboardMetrics = async () => {
 
   if (totalError) throw totalError;
 
-  const unfinished = Math.max(0, (total || 0) - (cleared || 0));
+  const unfinished = Math.max(0, (pending || 0) + (notCleared || 0));
 
   return {
     pending: pending || 0,

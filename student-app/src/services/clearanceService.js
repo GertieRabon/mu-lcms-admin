@@ -26,7 +26,7 @@ export const submitStudentLog = async (formData) => {
         .from('clearance')
         .insert([{
             student_id: student.student_id,
-            clearance_status: 'NOT CLEARED',
+            clearance_status: 'PENDING',
             data_logged: now,
             last_updated_at: now
         }]);

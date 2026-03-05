@@ -81,8 +81,26 @@ const HistoryPage = () => {
   return (
     <div className="history-container" style={{ position: 'relative', minHeight: '80vh' }}>
       <ToastContainer position="top-right" autoClose={3000} />
-      <h2>History</h2>
-      <p>Clearance request history and records</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+        <div>
+          <h2>History</h2>
+          <p>Clearance request history and records</p>
+        </div>
+        <div className="export-controls">
+          <select 
+            value={timeframe} 
+            onChange={(e) => setTimeframe(e.target.value)} 
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', backgroundColor: 'white' }}
+          >
+            <option value="all">All Time</option>
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+            <option value="year">Last Year</option>
+          </select>
+          <Button onClick={handleDownloadCSV} variant="secondary" style={{ padding: '10px 20px', width: '140px' }}>CSV Report</Button>
+          <Button onClick={handleDownloadPDF} variant="secondary" style={{ padding: '10px 20px', width: '140px' }}>PDF Report</Button>
+        </div>
+      </div>
 
       {/* Filter Controls */}
       <div style={{ display: 'flex', gap: '15px', marginTop: '20px', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -100,6 +118,7 @@ const HistoryPage = () => {
           style={{ flex: '1', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
         >
           <option value="all">All Statuses</option>
+          <option value="PENDING">Pending</option>
           <option value="CLEARED">Cleared</option>
           <option value="NOT CLEARED">Not Cleared</option>
         </select>
@@ -150,26 +169,6 @@ const HistoryPage = () => {
           </tbody>
         </table>
       )}
-
-      {/* Export Floating Action Buttons with Timeframe */}
-      <div style={{ position: 'fixed', bottom: '30px', right: '30px', display: 'flex', gap: '10px', zIndex: 1000, backgroundColor: 'white', padding: '10px', borderRadius: '8px', boxShadow: '0px 4px 12px rgba(0,0,0,0.15)', alignItems: 'center' }}>
-        <select 
-          value={timeframe} 
-          onChange={(e) => setTimeframe(e.target.value)} 
-          style={{ padding: '8px 12px', borderRadius: '5px', border: '1px solid #ddd', fontSize: '14px', backgroundColor: 'white' }}
-        >
-          <option value="all">All Time</option>
-          <option value="week">Last 7 Days</option>
-          <option value="month">Last 30 Days</option>
-          <option value="year">Last Year</option>
-        </select>
-        <button onClick={handleDownloadCSV} className="btn-secondary" style={{ padding: '10px 20px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', border: 'none' }}>
-          Save CSV
-        </button>
-        <button onClick={handleDownloadPDF} className="btn-primary" style={{ padding: '10px 20px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', border: 'none', color: 'white' }}>
-          Save PDF
-        </button>
-      </div>
     </div>
   );
 };
