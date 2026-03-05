@@ -10,6 +10,7 @@ const StudentLoggingForm = () => {
     const [programs, setPrograms] = useState([]);
     const [purposes, setPurposes] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [submitted, setSubmitted] = useState(false);
 
     const [form, setForm] = useState({
         studentNo: '',
@@ -18,7 +19,8 @@ const StudentLoggingForm = () => {
         lastName: '',
         email: '',
         program_id: '',
-        purpose_id: ''
+        purpose_id: '',
+        notes: ''
     });
 
     // Background Sync Effect
@@ -80,6 +82,19 @@ const StudentLoggingForm = () => {
         return () => window.removeEventListener('online', handleSync);
     }, []);
 
+    const handleReset = () => {
+        setForm({
+            studentNo: '', firstName: '', middleName: '', lastName: '',
+            email: '', program_id: '', purpose_id: ''
+        });
+        setSubmitted(false);
+    };
+
+    const isOthersSelected = () => {
+        const selectedPurpose = purposes.find(p => p.id === form.purpose_id);
+        return selectedPurpose?.purpose_code === 'OTH' || selectedPurpose?.purpose_name === 'Others';
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -92,6 +107,12 @@ const StudentLoggingForm = () => {
         if (!navigator.onLine) {
             const queue = JSON.parse(localStorage.getItem('offline_logs') || '[]');
             localStorage.setItem('offline_logs', JSON.stringify([...queue, form]));
+
+            // FIX: Trigger the confirmation page even when offline
+            setSubmitted(true);
+
+            // Keep the alert and confirmation page UI
+            console.log("Offline: Request queued locally.");
             alert("Offline: Request queued. It will sync automatically when wifi returns.");
             return;
         }
@@ -99,10 +120,11 @@ const StudentLoggingForm = () => {
         try {
             // Send form directly as it now contains the correct IDs
             await submitStudentLog(form);
+            setSubmitted(true);
             alert("Log submitted successfully!");
             setForm({
                 studentNo: '', firstName: '', middleName: '', lastName: '',
-                email: '', program_id: '', purpose_id: ''
+                email: '', program_id: '', purpose_id: '', notes: ''
             });
         } catch (err) {
             console.error("Submission failed:", err);
@@ -111,6 +133,18 @@ const StudentLoggingForm = () => {
     };
 
     if (loading) return <div>Loading form options...</div>;
+
+    if (submitted) {
+        return (
+            <div className="confirmation-container" style={{ textAlign: 'center', padding: '40px' }}>
+                <h2>Submission Successful!</h2>
+                <p>Your clearance request has been logged.</p>
+                <Button onClick={handleReset} variant="primary">
+                    Submit Another Request
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <form onSubmit={handleSubmit} className="admin-form">
@@ -191,25 +225,39 @@ const StudentLoggingForm = () => {
             <hr className="line" />
 
             <div className="form-row">
-                <div className="form-group">
+                <div className="form-group" style={{ width: '100%' }}>
                     <label>Purpose of Clearance</label>
                     <select
                         value={form.purpose_id}
-                        onChange={(e) => setForm({...form, purpose_id: e.target.value})}
+                        onChange={(e) => setForm({ ...form, purpose_id: e.target.value, notes: '' })}
                         required
                         className="form-select"
                     >
                         <option value="" disabled>Select Purpose</option>
-                        {/* FIX 1: Use 'purposes' (plural) to match your state */}
                         {purposes.map((purp) => (
                             <option key={purp.id} value={purp.id}>
-                                {/* FIX 2: Ensure these match your actual DB columns */}
                                 {purp.purpose_code} - {purp.purpose_name}
                             </option>
                         ))}
                     </select>
                 </div>
             </div>
+
+            {/* Conditionally show Notes field if "Others" is selected  */}
+            {isOthersSelected() && (
+                <div className="form-row">
+                    <div className="form-group" style={{ width: '100%' }}>
+                        <label>Please specify purpose:</label>
+                        <input
+                            type="text"
+                            value={form.notes}
+                            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                            placeholder="Type your purpose here..."
+                            required
+                        />
+                    </div>
+                </div>
+            )}
 
             <Button type="submit" variant="primary" style={{width: '100%'}}>
                 Submit Request

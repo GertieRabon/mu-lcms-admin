@@ -12,7 +12,8 @@ export const submitStudentLog = async (formData) => {
             last_name: formData.lastName,
             email: formData.email,
             program_id: formData.program_id,
-            purpose_id: formData.purpose_id
+            purpose_id: formData.purpose_id,
+            notes: formData.notes
         }])
         .select()
         .single();
