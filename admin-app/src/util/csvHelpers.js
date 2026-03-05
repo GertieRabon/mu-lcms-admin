@@ -1,18 +1,48 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const getTimestampedFilename = (prefix) => {
+/**
+ * Filter data based on a timeframe (week, month, year)
+ * @param {Array} data - The array of objects to filter
+ * @param {string} dateField - The field name containing the timestamp (e.g., 'timestamp' or 'data_logged')
+ * @param {string} timeframe - 'week', 'month', 'year', or 'all'
+ */
+const filterByTimeframe = (data, dateField, timeframe) => {
+  if (!timeframe || timeframe === 'all') return data;
+
+  const now = new Date();
+  const startOfPeriod = new Date();
+
+  if (timeframe === 'week') {
+    startOfPeriod.setDate(now.getDate() - 7);
+  } else if (timeframe === 'month') {
+    startOfPeriod.setMonth(now.getMonth() - 1);
+  } else if (timeframe === 'year') {
+    startOfPeriod.setFullYear(now.getFullYear() - 1);
+  }
+
+  return data.filter(item => {
+    const itemDate = new Date(item[dateField]);
+    return itemDate >= startOfPeriod && itemDate <= now;
+  });
+};
+
+const getTimestampedFilename = (prefix, timeframe = 'all') => {
   const now = new Date();
   const dateStr = now.toISOString().split('T')[0];
   const timeStr = now.toLocaleTimeString().replace(/:/g, '-').replace(/\s/g, '');
-  return `${prefix}_${dateStr}_${timeStr}`;
+  const timeframeSuffix = timeframe !== 'all' ? `_last_${timeframe}` : '';
+  return `${prefix}${timeframeSuffix}_${dateStr}_${timeStr}`;
 };
 
-export const downloadAuditCSV = (data) => {
-  const generatedAt = `Report Generated: ${new Date().toLocaleString()}`;
+// --- Audit Log Exports ---
+
+export const downloadAuditCSV = (data, timeframe = 'all') => {
+  const filteredData = filterByTimeframe(data, 'timestamp', timeframe);
+  const generatedAt = `Report Generated: ${new Date().toLocaleString()} (Filter: ${timeframe})`;
   const headers = ["Date", "Librarian", "Student ID", "Old Status", "New Status", "Remarks"];
   
-  const rows = data.map(log => [
+  const rows = filteredData.map(log => [
     new Date(log.timestamp).toLocaleString(),
     log.editor_name || 'System',
     log.student_id,
@@ -28,15 +58,16 @@ export const downloadAuditCSV = (data) => {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.setAttribute("download", `${getTimestampedFilename("audit_trail")}.csv`);
+  link.setAttribute("download", `${getTimestampedFilename("audit_trail", timeframe)}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 };
 
-export const downloadAuditPDF = (data) => {
+export const downloadAuditPDF = (data, timeframe = 'all') => {
+  const filteredData = filterByTimeframe(data, 'timestamp', timeframe);
   const doc = new jsPDF();
-  const generatedAt = `Report Generated: ${new Date().toLocaleString()}`;
+  const generatedAt = `Report Generated: ${new Date().toLocaleString()} (Filter: ${timeframe})`;
   
   doc.setFontSize(16);
   doc.text("Audit Trail Report", 14, 15);
@@ -44,7 +75,7 @@ export const downloadAuditPDF = (data) => {
   doc.text(generatedAt, 14, 22);
 
   const headers = [["Date", "Librarian", "Student ID", "Old Status", "New Status", "Remarks"]];
-  const rows = data.map(log => [
+  const rows = filteredData.map(log => [
     new Date(log.timestamp).toLocaleString(),
     log.editor_name || 'System',
     log.student_id,
@@ -53,24 +84,26 @@ export const downloadAuditPDF = (data) => {
     log.remarks || ''
   ]);
 
-  // FIX: Use functional usage instead of doc.autoTable
   autoTable(doc, {
     startY: 30,
     head: headers,
     body: rows,
     theme: 'grid',
     styles: { fontSize: 8 },
-    headStyles: { fillColor: [58, 134, 255] } // Primary Blue
+    headStyles: { fillColor: [58, 134, 255] } 
   });
 
-  doc.save(`${getTimestampedFilename("audit_trail")}.pdf`);
+  doc.save(`${getTimestampedFilename("audit_trail", timeframe)}.pdf`);
 };
 
-export const downloadClearanceReportCSV = (reportData) => {
-  const generatedAt = `Report Generated: ${new Date().toLocaleString()}`;
+// --- Clearance Report Exports ---
+
+export const downloadClearanceReportCSV = (reportData, timeframe = 'all') => {
+  const filteredData = filterByTimeframe(reportData, 'data_logged', timeframe);
+  const generatedAt = `Report Generated: ${new Date().toLocaleString()} (Filter: ${timeframe})`;
   const headers = ["Date Logged", "Student Number", "Full Name", "Program", "Purpose", "Status", "Verified By"];
   
-  const rows = reportData.map(item => {
+  const rows = filteredData.map(item => {
     const s = item.student || {};
     const l = item.librarian || {};
     return [
@@ -91,15 +124,16 @@ export const downloadClearanceReportCSV = (reportData) => {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.setAttribute("download", `${getTimestampedFilename("clearance_report")}.csv`);
+  link.setAttribute("download", `${getTimestampedFilename("clearance_report", timeframe)}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 };
 
-export const downloadClearanceReportPDF = (reportData) => {
+export const downloadClearanceReportPDF = (reportData, timeframe = 'all') => {
+  const filteredData = filterByTimeframe(reportData, 'data_logged', timeframe);
   const doc = new jsPDF();
-  const generatedAt = `Report Generated: ${new Date().toLocaleString()}`;
+  const generatedAt = `Report Generated: ${new Date().toLocaleString()} (Filter: ${timeframe})`;
   
   doc.setFontSize(16);
   doc.text("Clearance Report", 14, 15);
@@ -107,7 +141,7 @@ export const downloadClearanceReportPDF = (reportData) => {
   doc.text(generatedAt, 14, 22);
 
   const headers = [["Date Logged", "Student Number", "Full Name", "Program", "Purpose", "Status", "Verified By"]];
-  const rows = reportData.map(item => {
+  const rows = filteredData.map(item => {
     const s = item.student || {};
     const l = item.librarian || {};
     return [
@@ -130,5 +164,5 @@ export const downloadClearanceReportPDF = (reportData) => {
     headStyles: { fillColor: [255, 199, 44], textColor: [0, 0, 0] } 
   });
 
-  doc.save(`${getTimestampedFilename("clearance_report")}.pdf`);
+  doc.save(`${getTimestampedFilename("clearance_report", timeframe)}.pdf`);
 };
