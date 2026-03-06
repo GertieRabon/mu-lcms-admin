@@ -155,9 +155,13 @@ const HistoryPage = () => {
                   <td>{log.editor_name}</td>
                   <td>{log.student?.student_number}</td>
                   <td>
-                    <span className={log.new_status === 'CLEARED' ? 'text-success' : 'text-error'}>
-                      {log.old_status} ➜ {log.new_status}
-                    </span>
+                    {log.action_type === 'STUDENT_INFO_EDIT' ? (
+                      <span>Student info updated</span>
+                    ) : (
+                      <span className={log.new_status === 'CLEARED' ? 'text-success' : 'text-error'}>
+                        {log.old_status} ➜ {log.new_status}
+                      </span>
+                    )}
                   </td>
                   <td>{log.remarks}</td>
                 </tr>
