@@ -10,6 +10,8 @@ import UsersIcon from '../../assets/Users.png';
 import LogoutIcon from '../../assets/Logout.png';
 import HamburgerIcon from '../../assets/Hamburger.png';
 import MapuaLogo from '../../assets/mapualogo.png';
+import SettingsIcon from '../../assets/settings.png';
+import FaqIcon from '../../assets/faq.png';
 import './layout.css';
 
 const NavItem = ({ to, icon, label, onClick }) => {
@@ -105,8 +107,9 @@ const DashboardLayout = () => {
               <NavItem to="/users"    icon={UsersIcon}     label="Users"      />
             )}
             {isAdmin && (
-              <NavItem to="/configuration"    icon={UsersIcon}     label="Settings"      />
+              <NavItem to="/configuration" icon={SettingsIcon} label="Settings" />
             )}
+            <NavItem to="/faq" icon={FaqIcon} label="FAQ" />
             <NavItem
               icon={LogoutIcon}
               label="Logout"

@@ -11,6 +11,7 @@ import ClearanceListPage from "./features/clearances/pages/ClearanceListPage";
 import HistoryPage from "./features/history/pages/HistoryPage";
 import UserManagementPage from "./features/users/pages/UserManagementPage";
 import ConfigurationPage from "./features/configuration/pages/ConfigurationPage";
+import FAQPage from "./features/faq/pages/FAQPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -55,6 +56,7 @@ function App() {
                 <ConfigurationPage />
               </ProtectedRoute>
             } />
+            <Route path="faq" element={<FAQPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" />} />
