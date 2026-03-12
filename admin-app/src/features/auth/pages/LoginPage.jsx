@@ -145,7 +145,7 @@ const LoginPage = () => {
             placeholder="your.email@example.com" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            disabled={isLoggingIn || isAccountLocked}
+            disabled={isLoggingIn || isAccountLocked(email)}
             required
             autoComplete="email"
             autoCapitalize="off"

@@ -7,6 +7,8 @@ import { updateClearanceWithAudit, updateStudentInfoWithAudit } from "../../../s
 import { useAuth } from "../../../context/AuthContext";
 import { Button, Modal } from "../../../components/ui";
 import "../clearances.css";
+import {supabase} from "../../../services/supabaseClient.js";
+import {fetchArchiveSettings, updateArchiveSettings} from "../../configuration/services/configurationService";
 
 export default function ClearanceListPage() {
   const [clearances, setClearances] = useState([]);
@@ -173,6 +175,101 @@ export default function ClearanceListPage() {
     setSavingEdit(false);
   };
 
+  const handleArchiveDatabase = async () => {
+    const confirmArchive = window.confirm(
+        "Warning: This will download 3 files (Report, Raw Data, and Audit Logs) and then PERMANENTLY WIPE the database. Proceed?"
+    );
+
+    if (!confirmArchive) return;
+
+    try {
+      setLoading(true);
+
+      // 1. FETCH ALL DATA
+      const reportData = await fetchClearanceReportData();
+      const rawClearanceData = await fetchClearances();
+      const { data: auditData, error: auditFetchErr } = await supabase
+          .from('audit_trail')
+          .select('*');
+
+      if (auditFetchErr) throw auditFetchErr;
+
+      // 2. TRIGGER DOWNLOADS WITH DELAYS
+      // This prevents the browser from blocking multiple simultaneous downloads
+      const dateStr = new Date().toISOString().split('T')[0];
+
+      // File 1: Formatted Report
+      if (reportData && reportData.length > 0) {
+        downloadClearanceReportCSV(reportData, 'all');
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+
+      // File 2: Raw Clearance Dump
+      if (rawClearanceData && rawClearanceData.length > 0) {
+        const clearHeaders = Object.keys(rawClearanceData[0] || {}).join(",");
+        const clearRows = rawClearanceData.map(obj =>
+            Object.values(obj).map(val => `"${val !== null ? val : ''}"`).join(",")
+        ).join("\n");
+        downloadFile(clearHeaders, clearRows, `RAW_clearance_dump_${dateStr}.csv`);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // File 3: Audit Trail Dump
+      if (auditData && auditData.length > 0) {
+        const auditHeaders = Object.keys(auditData[0]).join(",");
+        const auditRows = auditData.map(obj =>
+            Object.values(obj).map(val => `"${val !== null ? val : ''}"`).join(",")
+        ).join("\n");
+        downloadFile(auditHeaders, auditRows, `audit_trail_dump_${dateStr}.csv`);
+      }
+
+      // 3. UPDATE SETTINGS
+      const settings = await fetchArchiveSettings();
+      await updateArchiveSettings({
+        ...settings,
+        lastArchived: new Date().toISOString()
+      });
+
+      // 4. THE WIPE (Order is critical: Delete Child table first)
+      // Step A: Delete Audit Trail
+      const { error: delAuditErr } = await supabase
+          .from('audit_trail')
+          .delete()
+          .gt('audit_id', 0); // Targeted delete for bigint
+
+      if (delAuditErr) throw new Error(`Audit wipe failed: ${delAuditErr.message}`);
+
+      // Step B: Delete Clearance
+      const { error: delClearErr } = await supabase
+          .from('clearance')
+          .delete()
+          .neq('clearance_uuid', '00000000-0000-0000-0000-000000000000');
+
+      if (delClearErr) throw new Error(`Clearance wipe failed: ${delClearErr.message}`);
+
+      toast.success("Success: 3 backup files generated and database cleared.");
+      loadData();
+    } catch (err) {
+      toast.error(`Archiving failed: ${err.message}`);
+      console.error("Archive Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+// Helper function to trigger downloads
+  const downloadFile = (headers, rows, fileName) => {
+    const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleSaveEdit = async () => {
     if (!selectedEntry?.student?.student_id) {
       toast.error("Unable to edit this entry. Missing student record.");
@@ -274,6 +371,7 @@ export default function ClearanceListPage() {
             </select>
             <Button onClick={handleExportCSV} variant="secondary" style={{ padding: '10px 20px', width: '140px' }}>CSV Report</Button>
             <Button onClick={handleExportPDF} variant="secondary" style={{ padding: '10px 20px', width: '140px' }}>PDF Report</Button>
+            <Button onClick={handleArchiveDatabase} variant="primary" style={{background: '#D32F2F', color: 'white',padding: '10px 20px',width: 'auto'}}>Archive</Button>
           </div>
         </div>
 

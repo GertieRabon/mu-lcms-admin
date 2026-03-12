@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useInactivityTimeout } from '../../hooks/useInactivityTimeout';
@@ -13,6 +13,7 @@ import MapuaLogo from '../../assets/mapualogo.png';
 import SettingsIcon from '../../assets/settings.png';
 import FaqIcon from '../../assets/faq.png';
 import './layout.css';
+import { fetchArchiveSettings } from '../../features/configuration/services/configurationService';
 
 const NavItem = ({ to, icon, label, onClick }) => {
   if (onClick) {
@@ -46,6 +47,25 @@ const DashboardLayout = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isAdmin = user?.role === 'LIBRARY_ADMIN';
+  const [archiveNotice, setArchiveNotice] = useState(null);
+
+  useEffect(() => {
+    if (isAdmin) {
+      const checkArchiveStatus = async () => {
+        const settings = await fetchArchiveSettings();
+        const lastDate = new Date(settings.lastArchived);
+        const nextArchiveDate = new Date(lastDate.setMonth(lastDate.getMonth() + settings.intervalMonths));
+
+        if (new Date() >= nextArchiveDate) {
+          setArchiveNotice({
+            message: `Scheduled archiving is due. Last archived: ${new Date(settings.lastArchived).toLocaleDateString()}`,
+            settings
+          });
+        }
+      };
+      checkArchiveStatus();
+    }
+  }, [isAdmin]);
 
   const handleInactivityLogout = useCallback(async () => {
     try {

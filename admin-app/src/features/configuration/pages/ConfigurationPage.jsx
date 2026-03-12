@@ -10,6 +10,8 @@ import {
   createPurpose,
   updatePurpose,
   deletePurpose,
+  fetchArchiveSettings,
+  updateArchiveSettings
 } from '../services/configurationService';
 import { Button, Loader, Modal } from '../../../components/ui';
 import '../configuration.css';
@@ -35,16 +37,19 @@ const ConfigurationPage = () => {
   // Confirmation Modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [archiveInterval, setArchiveInterval] = useState(6);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [programsData, purposesData] = await Promise.all([
+      const [programsData, purposesData, archiveData] = await Promise.all([
         fetchPrograms(),
         fetchPurposes(),
+        fetchArchiveSettings()
       ]);
       setPrograms(programsData);
       setPurposes(purposesData);
+      if (archiveData) setArchiveInterval(archiveData.intervalMonths);
     } catch (err) {
       toast.error('Failed to load data');
     } finally {
@@ -77,6 +82,20 @@ const ConfigurationPage = () => {
       onConfirm: performSaveProgram
     });
     setShowConfirmModal(true);
+  };
+
+  const handleUpdateInterval = async (val) => {
+    const newInterval = parseInt(val);
+    setArchiveInterval(newInterval);
+    try {
+      setSubmitting(true);
+      await updateArchiveSettings({ intervalMonths: newInterval });
+      toast.success(`Archive notification set to every ${newInterval} months`);
+    } catch (err) {
+      toast.error("Failed to update archive settings");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const performSaveProgram = async () => {
@@ -211,350 +230,380 @@ const ConfigurationPage = () => {
   );
 
   return (
-    <div className="management-container">
-      <ToastContainer position="top-right" autoClose={3000} />
-      {(loading || submitting) && <Loader size="md" />}
+      <div className="management-container">
+        <ToastContainer position="top-right" autoClose={3000} />
+        {(loading || submitting) && <Loader size="md" />}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ margin: 0 }}>System Configuration</h2>
-      </div>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: '24px', borderBottom: '2px solid #e0e0e0' }}>
-        <button
-          onClick={() => { setActiveTab('programs'); setSearchQuery(''); }}
-          style={{
-            padding: '12px 24px',
-            background: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'programs' ? '3px solid var(--primary)' : '3px solid transparent',
-            cursor: 'pointer',
-            fontWeight: '600',
-            color: activeTab === 'programs' ? 'var(--primary)' : '#999',
-            fontSize: '14px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            transition: 'all 0.3s ease'
-          }}
-        >
-          Programs
-        </button>
-        <button
-          onClick={() => { setActiveTab('purposes'); setSearchQuery(''); }}
-          style={{
-            padding: '12px 24px',
-            background: 'transparent',
-            border: 'none',
-            borderBottom: activeTab === 'purposes' ? '3px solid var(--primary)' : '3px solid transparent',
-            cursor: 'pointer',
-            fontWeight: '600',
-            color: activeTab === 'purposes' ? 'var(--primary)' : '#999',
-            fontSize: '14px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            transition: 'all 0.3s ease'
-          }}
-        >
-          Purposes
-        </button>
-      </div>
-
-      {/* PROGRAMS TAB */}
-      {activeTab === 'programs' && (
-        <>
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', alignItems: 'flex-end' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>Search</label>
-              <input
-                type="text"
-                placeholder="Search by name or code..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                }}
-              />
-            </div>
-            <Button variant="secondary" size="md" onClick={handleAddProgram}>
-              + Add Program
-            </Button>
-          </div>
-
-          {filteredPrograms.length > 0 ? (
-            <table>
-              <thead>
-                <tr>
-                  <th>Program Name</th>
-                  <th>Program Code</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPrograms.map((program) => (
-                  <tr key={program.id}>
-                    <td>{program.program_name}</td>
-                    <td>{program.program_code}</td>
-                    <td style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                      <Button
-                        variant="primary"
-                        size="xs"
-                        onClick={() => handleEditProgram(program)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        onClick={() => handleDeleteProgram(program)}
-                        style={{ color: '#d32f2f' }}
-                      >
-                        Delete
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <tr>
-              <td colSpan="3" style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-                {programs.length === 0 ? 'No programs found' : 'No results match your search'}
-              </td>
-            </tr>
-          )}
-        </>
-      )}
-
-      {/* PURPOSES TAB */}
-      {activeTab === 'purposes' && (
-        <>
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', alignItems: 'flex-end' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>Search</label>
-              <input
-                type="text"
-                placeholder="Search by name or code..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  boxSizing: 'border-box',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                }}
-              />
-            </div>
-            <Button variant="secondary" size="md" onClick={handleAddPurpose}>
-              + Add Purpose
-            </Button>
-          </div>
-
-          {filteredPurposes.length > 0 ? (
-            <table>
-              <thead>
-                <tr>
-                  <th>Purpose Name</th>
-                  <th>Purpose Code</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPurposes.map((purpose) => (
-                  <tr key={purpose.id}>
-                    <td>{purpose.purpose_name}</td>
-                    <td>{purpose.purpose_code}</td>
-                    <td style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                      <Button
-                        variant="primary"
-                        size="xs"
-                        onClick={() => handleEditPurpose(purpose)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        onClick={() => handleDeletePurpose(purpose)}
-                        disabled={purpose.purpose_name === 'Others'}
-                        style={{ color: purpose.purpose_name === 'Others' ? '#ccc' : '#d32f2f' }}
-                        title={purpose.purpose_name === 'Others' ? 'Cannot delete system field' : ''}
-                      >
-                        Delete
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <tr>
-              <td colSpan="3" style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-                {purposes.length === 0 ? 'No purposes found' : 'No results match your search'}
-              </td>
-            </tr>
-          )}
-        </>
-      )}
-
-      {/* ADD/EDIT PROGRAM MODAL */}
-      <Modal
-        isOpen={showProgramModal}
-        onClose={() => !submitting && setShowProgramModal(false)}
-        title={editingProgram ? 'Edit Program' : 'Add Program'}
-        size="md"
-      >
-        <form onSubmit={handleSaveProgram} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ marginBottom: 0 }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>Program Name</label>
-            <input
-              type="text"
-              placeholder="e.g., Computer Science"
-              value={programForm.program_name}
-              onChange={(e) => setProgramForm({ ...programForm, program_name: e.target.value })}
-              required
-              disabled={submitting}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: 0 }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>Program Code</label>
-            <input
-              type="text"
-              placeholder="e.g., CS"
-              value={programForm.program_code}
-              onChange={(e) => setProgramForm({ ...programForm, program_code: e.target.value })}
-              required
-              disabled={submitting}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
-            <Button variant="ghost" onClick={() => setShowProgramModal(false)} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting} variant="primary" size="md">
-              {submitting ? 'Saving...' : 'Save Program'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* ADD/EDIT PURPOSE MODAL */}
-      <Modal
-        isOpen={showPurposeModal}
-        onClose={() => !submitting && setShowPurposeModal(false)}
-        title={editingPurpose ? 'Edit Purpose' : 'Add Purpose'}
-        size="md"
-      >
-        <form onSubmit={handleSavePurpose} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ marginBottom: 0 }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>Purpose Name</label>
-            <input
-              type="text"
-              placeholder="e.g., Library Research"
-              value={purposeForm.purpose_name}
-              onChange={(e) => setPurposeForm({ ...purposeForm, purpose_name: e.target.value })}
-              required
-              disabled={submitting}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: 0 }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>Purpose Code</label>
-            <input
-              type="text"
-              placeholder="e.g., RES"
-              value={purposeForm.purpose_code}
-              onChange={(e) => setPurposeForm({ ...purposeForm, purpose_code: e.target.value })}
-              required
-              disabled={submitting}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
-            <Button variant="ghost" onClick={() => setShowPurposeModal(false)} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting} variant="primary" size="md">
-              {submitting ? 'Saving...' : 'Save Purpose'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* CONFIRMATION MODAL */}
-      <Modal
-        isOpen={showConfirmModal}
-        onClose={() => !submitting && setShowConfirmModal(false)}
-        title="Confirm Action"
-        size="sm"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <p style={{ margin: 0, color: '#333', fontSize: '16px' }}>
-            {confirmAction?.message}
-          </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-            <Button
-              variant="ghost"
-              onClick={() => setShowConfirmModal(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmAction?.onConfirm}
-              disabled={submitting}
-              size="md"
-              variant={confirmAction?.type?.includes('delete') ? 'primary' : 'primary'}
-              style={confirmAction?.type?.includes('delete') ? { backgroundColor: '#d32f2f', color: 'white' } : {}}
-            >
-              {submitting ? 'Processing...' : 'Confirm'}
-            </Button>
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h2 style={{ margin: 0 }}>System Configuration</h2>
         </div>
-      </Modal>
-    </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 0, marginBottom: '24px', borderBottom: '2px solid #e0e0e0' }}>
+          <button
+              onClick={() => { setActiveTab('programs'); setSearchQuery(''); }}
+              style={{
+                padding: '12px 24px',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: activeTab === 'programs' ? '3px solid var(--primary)' : '3px solid transparent',
+                cursor: 'pointer',
+                fontWeight: '600',
+                color: activeTab === 'programs' ? 'var(--primary)' : '#999',
+                fontSize: '14px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                transition: 'all 0.3s ease'
+              }}
+          >
+            Programs
+          </button>
+          <button
+              onClick={() => { setActiveTab('purposes'); setSearchQuery(''); }}
+              style={{
+                padding: '12px 24px',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: activeTab === 'purposes' ? '3px solid var(--primary)' : '3px solid transparent',
+                cursor: 'pointer',
+                fontWeight: '600',
+                color: activeTab === 'purposes' ? 'var(--primary)' : '#999',
+                fontSize: '14px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                transition: 'all 0.3s ease'
+              }}
+          >
+            Purposes
+          </button>
+          {/* NEW ARCHIVE TAB BUTTON */}
+          <button
+              onClick={() => { setActiveTab('archive'); setSearchQuery(''); }}
+              style={{
+                padding: '12px 24px',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: activeTab === 'archive' ? '3px solid var(--primary)' : '3px solid transparent',
+                cursor: 'pointer',
+                fontWeight: '600',
+                color: activeTab === 'archive' ? 'var(--primary)' : '#999',
+                fontSize: '14px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                transition: 'all 0.3s ease'
+              }}
+          >
+            Archive Settings
+          </button>
+        </div>
+
+        {/* PROGRAMS TAB */}
+        {activeTab === 'programs' && (
+            <>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>Search</label>
+                  <input
+                      type="text"
+                      placeholder="Search by name or code..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                      }}
+                  />
+                </div>
+                <Button variant="secondary" size="md" onClick={handleAddProgram}>
+                  + Add Program
+                </Button>
+              </div>
+
+              {filteredPrograms.length > 0 ? (
+                  <table>
+                    <thead>
+                    <tr>
+                      <th>Program Name</th>
+                      <th>Program Code</th>
+                      <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {filteredPrograms.map((program) => (
+                        <tr key={program.id}>
+                          <td>{program.program_name}</td>
+                          <td>{program.program_code}</td>
+                          <td style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                            <Button variant="primary" size="xs" onClick={() => handleEditProgram(program)}>Edit</Button>
+                            <Button variant="ghost" size="xs" onClick={() => handleDeleteProgram(program)} style={{ color: '#d32f2f' }}>Delete</Button>
+                          </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                  </table>
+              ) : (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>No programs found</div>
+              )}
+            </>
+        )}
+
+        {/* PURPOSES TAB */}
+        {activeTab === 'purposes' && (
+            <>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333' }}>Search</label>
+                  <input
+                      type="text"
+                      placeholder="Search by name or code..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                      }}
+                  />
+                </div>
+                <Button variant="secondary" size="md" onClick={handleAddPurpose}>
+                  + Add Purpose
+                </Button>
+              </div>
+
+              {filteredPurposes.length > 0 ? (
+                  <table>
+                    <thead>
+                    <tr>
+                      <th>Purpose Name</th>
+                      <th>Purpose Code</th>
+                      <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {filteredPurposes.map((purpose) => (
+                        <tr key={purpose.id}>
+                          <td>{purpose.purpose_name}</td>
+                          <td>{purpose.purpose_code}</td>
+                          <td style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                            <Button variant="primary" size="xs" onClick={() => handleEditPurpose(purpose)}>Edit</Button>
+                            <Button
+                                variant="ghost"
+                                size="xs"
+                                onClick={() => handleDeletePurpose(purpose)}
+                                disabled={purpose.purpose_name === 'Others'}
+                                style={{ color: purpose.purpose_name === 'Others' ? '#ccc' : '#d32f2f' }}
+                            >
+                              Delete
+                            </Button>
+                          </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                  </table>
+              ) : (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>No purposes found</div>
+              )}
+            </>
+        )}
+
+        {/* ARCHIVE TAB CONTENT */}
+        {activeTab === 'archive' && (
+            <div className="form-section animate-fade-in" style={{ padding: '20px', background: '#f9f9f9', borderRadius: '12px' }}>
+              <h3 style={{ color: 'var(--primary)', marginBottom: '16px' }}>Database Archiving Schedule</h3>
+              <div className="form-group" style={{ maxWidth: '400px' }}>
+                <label style={{ fontSize: '14px', fontWeight: '600', color: '#333', display: 'block', marginBottom: '8px' }}>
+                  Notification Interval
+                </label>
+                <select
+                    value={archiveInterval}
+                    onChange={(e) => handleUpdateInterval(e.target.value)}
+                    disabled={submitting}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px solid #ddd'
+                    }}
+                >
+                  <option value="3">Every 3 Months (Quarterly)</option>
+                  <option value="6">Every 6 Months (Bi-Annually)</option>
+                  <option value="12">Every 12 Months (Annually)</option>
+                </select>
+              </div>
+              <p style={{ fontSize: '13px', marginTop: '12px', color: '#666', lineHeight: '1.5' }}>
+                This setting controls how often the system prompts administrators to perform a database backup.
+                When the interval is reached, a notification will appear on the dashboard to export the student clearance database as a CSV file.
+              </p>
+            </div>
+        )}
+
+        {/* ADD/EDIT PROGRAM MODAL */}
+        <Modal
+            isOpen={showProgramModal}
+            onClose={() => !submitting && setShowProgramModal(false)}
+            title={editingProgram ? 'Edit Program' : 'Add Program'}
+            size="md"
+        >
+          <form onSubmit={handleSaveProgram} style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+            <div style={{marginBottom: 0}}>
+              <label
+                  style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333'}}>Program
+                Name</label>
+              <input
+                  type="text"
+                  placeholder="e.g., Computer Science"
+                  value={programForm.program_name}
+                  onChange={(e) => setProgramForm({...programForm, program_name: e.target.value})}
+                  required
+                  disabled={submitting}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+              />
+            </div>
+
+            <div style={{marginBottom: 0}}>
+              <label
+                  style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333'}}>Program
+                Code</label>
+              <input
+                  type="text"
+                  placeholder="e.g., CS"
+                  value={programForm.program_code}
+                  onChange={(e) => setProgramForm({...programForm, program_code: e.target.value})}
+                  required
+                  disabled={submitting}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+              />
+            </div>
+
+            <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px'}}>
+              <Button variant="ghost" onClick={() => setShowProgramModal(false)} disabled={submitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting} variant="primary" size="md">
+                {submitting ? 'Saving...' : 'Save Program'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* ADD/EDIT PURPOSE MODAL */}
+        <Modal
+            isOpen={showPurposeModal}
+            onClose={() => !submitting && setShowPurposeModal(false)}
+            title={editingPurpose ? 'Edit Purpose' : 'Add Purpose'}
+            size="md"
+        >
+          <form onSubmit={handleSavePurpose} style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+            <div style={{marginBottom: 0}}>
+              <label
+                  style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333'}}>Purpose
+                Name</label>
+              <input
+                  type="text"
+                  placeholder="e.g., Library Research"
+                  value={purposeForm.purpose_name}
+                  onChange={(e) => setPurposeForm({...purposeForm, purpose_name: e.target.value})}
+                  required
+                  disabled={submitting}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+              />
+            </div>
+
+            <div style={{marginBottom: 0}}>
+              <label
+                  style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#333'}}>Purpose
+                Code</label>
+              <input
+                  type="text"
+                  placeholder="e.g., RES"
+                  value={purposeForm.purpose_code}
+                  onChange={(e) => setPurposeForm({...purposeForm, purpose_code: e.target.value})}
+                  required
+                  disabled={submitting}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+              />
+            </div>
+
+            <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px'}}>
+              <Button variant="ghost" onClick={() => setShowPurposeModal(false)} disabled={submitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting} variant="primary" size="md">
+                {submitting ? 'Saving...' : 'Save Purpose'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* CONFIRMATION MODAL */}
+        <Modal
+            isOpen={showConfirmModal}
+            onClose={() => !submitting && setShowConfirmModal(false)}
+            title="Confirm Action"
+            size="sm"
+        >
+          <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+            <p style={{margin: 0, color: '#333', fontSize: '16px'}}>
+              {confirmAction?.message}
+            </p>
+            <div style={{display: 'flex', gap: '12px', justifyContent: 'flex-end'}}>
+              <Button
+                  variant="ghost"
+                  onClick={() => setShowConfirmModal(false)}
+                  disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                  onClick={confirmAction?.onConfirm}
+                  disabled={submitting}
+                  size="md"
+                  variant={confirmAction?.type?.includes('delete') ? 'primary' : 'primary'}
+                  style={confirmAction?.type?.includes('delete') ? {backgroundColor: '#d32f2f', color: 'white'} : {}}
+              >
+                {submitting ? 'Processing...' : 'Confirm'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      </div>
   );
 };
 

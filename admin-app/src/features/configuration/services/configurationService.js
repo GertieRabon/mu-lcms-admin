@@ -86,3 +86,27 @@ export const deletePurpose = async (id, purposeName) => {
   
   if (error) throw error;
 };
+
+export const fetchArchiveSettings = async () => {
+  const { data, error } = await supabase
+      .from('system_settings')
+      .select('*')
+      .eq('setting_key', 'archive_config')
+      .single();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return data?.setting_value || { intervalMonths: 6, lastArchived: new Date().toISOString() };
+};
+
+export const updateArchiveSettings = async (settings) => {
+  const { error } = await supabase
+      .from('system_settings')
+      .upsert(
+          {
+            setting_key: 'archive_config',
+            setting_value: settings
+          },
+          { onConflict: 'setting_key' }
+      );
+  if (error) throw error;
+};
